@@ -79,7 +79,17 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           Expanded(
-            child: BlocBuilder<ProductBloc, ProductState>(
+            child: BlocConsumer<ProductBloc, ProductState>(
+              listener: (context, state) {
+                if (state is ProductError &&
+                    state.message.contains('No internet connection')) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Offline: Showing cached data'),
+                    ),
+                  );
+                }
+              },
               builder: (context, state) {
                 if (state is ProductLoading && _currentPage == 1) {
                   return const Center(child: CircularProgressIndicator());

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/adapters.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'features/product/data/models/product_model.dart';
 import 'features/product/presentation/blocs/product_bloc.dart' as di;
@@ -9,9 +9,12 @@ import 'injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await di.init();
+  // Initialize Hive first
   await Hive.initFlutter();
+  // Register adapter
   Hive.registerAdapter(ProductModelAdapter());
+  // Then initialize dependencies
+  await di.init();
   runApp(const MyApp());
 }
 
