@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'features/product/presentation/blocs/product_bloc.dart' as di;
 import 'features/product/presentation/pages/home_page.dart';
 import 'injection_container.dart' as di;
 
@@ -17,7 +19,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'E-Commerce Product App',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: HomePage(),
+      home: BlocProvider(
+        create: (context) => di.sl<di.ProductBloc>(),
+        child: const HomePage(),
+      ),
     );
   }
 }
