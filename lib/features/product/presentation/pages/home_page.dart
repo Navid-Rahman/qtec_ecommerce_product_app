@@ -37,92 +37,139 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
-    super.dispose(); // Fixed missing parentheses here
+    super.dispose();
+  }
+
+  void _showSortBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext bottomSheetContext) {
+        return BlocProvider.value(
+          value: context.read<ProductBloc>(), // Use the existing ProductBloc
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sort By',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                ListTile(
+                  title: const Text('Price: Low to High'),
+                  onTap: () {
+                    context.read<ProductBloc>().add(
+                      const SortProducts('price_low_high'),
+                    );
+                    Navigator.pop(bottomSheetContext);
+                  },
+                ),
+                ListTile(
+                  title: const Text('Price: High to Low'),
+                  onTap: () {
+                    context.read<ProductBloc>().add(
+                      const SortProducts('price_high_low'),
+                    );
+                    Navigator.pop(bottomSheetContext);
+                  },
+                ),
+                ListTile(
+                  title: const Text('Rating'),
+                  onTap: () {
+                    context.read<ProductBloc>().add(
+                      const SortProducts('rating'),
+                    );
+                    Navigator.pop(bottomSheetContext);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Product Listing'),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
-            onSelected: (value) {
-              context.read<ProductBloc>().add(SortProducts(value));
-            },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'price_low_high',
-                    child: Text('Price: Low to High'),
-                  ),
-                  const PopupMenuItem(value: 'rating', child: Text('Rating')),
-                ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                context.read<ProductBloc>().add(SearchProducts(value));
-              },
-            ),
-          ),
-          Expanded(
-            child: BlocConsumer<ProductBloc, ProductState>(
-              listener: (context, state) {
-                if (state is ProductError &&
-                    state.message.contains('No internet connection')) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Offline: Showing cached data'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search products...',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        context.read<ProductBloc>().add(SearchProducts(value));
+                      },
                     ),
-                  );
-                }
-              },
-              builder: (context, state) {
-                if (state is ProductLoading && _currentPage == 1) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (state is ProductLoaded) {
-                  return GridView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(8),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.65,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                    itemCount:
-                        state.hasReachedMax
-                            ? state.products.length
-                            : state.products.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index >= state.products.length) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      return ProductCard(product: state.products[index]);
-                    },
-                  );
-                } else if (state is ProductError) {
-                  return Center(child: Text(state.message));
-                }
-                return const Center(child: Text('No products found'));
-              },
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.sort),
+                    onPressed: () => _showSortBottomSheet(context),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: BlocConsumer<ProductBloc, ProductState>(
+                listener: (context, state) {
+                  if (state is ProductError &&
+                      state.message.contains('No internet connection')) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Offline: Showing cached data'),
+                      ),
+                    );
+                  }
+                },
+                builder: (context, state) {
+                  if (state is ProductLoading && _currentPage == 1) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is ProductLoaded) {
+                    return GridView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(8),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.65,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                      itemCount:
+                          state.hasReachedMax
+                              ? state.products.length
+                              : state.products.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index >= state.products.length) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        return ProductCard(product: state.products[index]);
+                      },
+                    );
+                  } else if (state is ProductError) {
+                    return Center(child: Text(state.message));
+                  }
+                  return const Center(child: Text('No products found'));
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

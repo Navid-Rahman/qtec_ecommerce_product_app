@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/product.dart';
@@ -56,14 +58,21 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   void _onSortProducts(SortProducts event, Emitter<ProductState> emit) {
+    developer.log(
+      'Processing SortProducts event with sortBy: ${event.sortBy}',
+      name: 'ProductBloc',
+    );
     final currentState = state;
     if (currentState is ProductLoaded) {
       final sortedProducts = List<Product>.from(currentState.products);
       if (event.sortBy == 'price_low_high') {
         sortedProducts.sort((a, b) => a.price.compareTo(b.price));
+      } else if (event.sortBy == 'price_high_low') {
+        sortedProducts.sort((a, b) => b.price.compareTo(a.price));
       } else if (event.sortBy == 'rating') {
         sortedProducts.sort((a, b) => b.rating.compareTo(a.rating));
       }
+      developer.log('Sorted products by ${event.sortBy}', name: 'ProductBloc');
       emit(ProductLoaded(products: sortedProducts));
     }
   }
