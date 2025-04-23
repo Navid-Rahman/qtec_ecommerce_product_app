@@ -24,13 +24,17 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       final result = await getProducts(event.page);
       result.fold((failure) => emit(ProductError(failure.message)), (products) {
         allProducts = products;
-        emit(ProductLoaded(products: products));
+        emit(
+          ProductLoaded(products: products, hasReachedMax: products.isEmpty),
+        );
       });
     } else {
       final result = await getProducts(event.page);
       result.fold((failure) => emit(ProductError(failure.message)), (products) {
         allProducts.addAll(products);
-        emit(ProductLoaded(products: allProducts));
+        emit(
+          ProductLoaded(products: allProducts, hasReachedMax: products.isEmpty),
+        );
       });
     }
   }

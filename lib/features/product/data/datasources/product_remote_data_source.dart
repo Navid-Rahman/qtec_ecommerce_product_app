@@ -25,6 +25,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
 
   @override
   Future<List<ProductModel>> getProducts(int page) async {
+    const int pageSize = 10;
     final connectivityResult = await connectivity.checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
       final cachedProducts = productBox.values.toList();
@@ -33,7 +34,13 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           'Fetching products from Hive cache (page: $page)',
           name: 'ProductRemoteDataSource',
         );
-        return cachedProducts;
+
+        final startIndex = (page - 1) * pageSize;
+        final endIndex = startIndex + pageSize;
+        return cachedProducts.sublist(
+          startIndex,
+          endIndex > cachedProducts.length ? cachedProducts.length : endIndex,
+        );
       }
       throw ServerException('No internet connection and no cached data');
     }
@@ -54,11 +61,25 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
       for (var product in products) {
         await productBox.put(product.id, product);
       }
+
+      final startIndex = (page - 1) * pageSize;
+      if (startIndex >= products.length) {
+        developer.log(
+          'No more products to fetch (page: $page)',
+          name: 'ProductRemoteDataSource',
+        );
+        return [];
+      }
+      final endIndex = startIndex + pageSize;
+      final paginatedProducts = products.sublist(
+        startIndex,
+        endIndex > products.length ? products.length : endIndex,
+      );
       developer.log(
-        'Successfully fetched and cached ${products.length} products',
+        'Successfully fetched ${paginatedProducts.length} products for page $page',
         name: 'ProductRemoteDataSource',
       );
-      return products;
+      return paginatedProducts;
     } else {
       throw ServerException('Failed to fetch products');
     }
