@@ -1,16 +1,32 @@
-# qtec_ecommerce_product_app
+# Qtec Task - E-Commerce Product Listing App
 
-A Flutter e-commerce product listing app with pagination, search, and offline support.
+## Overview
+This is a Flutter application developed as part of the Qtec Task for a job application. The app is an e-commerce product listing platform that fetches products from the FakeStoreAPI, supports pagination, search, sorting, and offline caching. It follows Clean Architecture and uses BLoC for state management.
 
-## Getting Started
+### Features
+- **Product Listing**: Fetches products from FakeStoreAPI with simulated pagination (10 products per page).
+- **Search**: Filter products by name using a search bar.
+- **Sorting**: Sort products by Price (Low to High, High to Low) and Rating via a bottom modal sheet.
+- **Offline Support**: Caches products using Hive and displays cached data when offline with a snackbar notification.
+- **State Management**: Uses BLoC pattern for robust state management and minimal widget rebuilds.
+- **Testing**: Includes a widget test for `ProductCard` and a unit test for `GetProducts` use case.
+- **Clean Architecture**: Separates code into presentation, domain, and data layers for maintainability.
 
-This project is a starting point for a Flutter application.
+### Screenshots
+*Home Page with Products*
+![Home Page](assets/screenshots/home_page.png)
 
-A few resources to get you started if this is your first Flutter project:
+*Search Functionality*
+![Search](assets/screenshots/search.png)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+*Sorting Bottom Sheet*
+![Sort](assets/screenshots/sort_by.png)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+*Offline Snackbar*
+![Offline](-)
+
+## Setup Instructions
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/Navid-Rahman/qtec_ecommerce_product_app.git
+   cd qtec-task
