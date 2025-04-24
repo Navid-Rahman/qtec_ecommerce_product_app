@@ -97,32 +97,37 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   void _onSearchProducts(SearchProducts event, Emitter<ProductState> emit) {
     developer.log('Searching with query: ${event.query}', name: 'ProductBloc');
-    if (event.query.isEmpty) {
-      emit(
-        ProductLoaded(
-          products: allProducts,
-          hasReachedMax: hasReachedMax,
-          isCachedData:
-              state is ProductLoaded && (state as ProductLoaded).isCachedData,
-        ),
-      );
-    } else {
-      final filteredProducts =
-          allProducts
-              .where(
-                (product) => product.title.toLowerCase().contains(
-                  event.query.toLowerCase(),
-                ),
-              )
-              .toList();
-      emit(
-        ProductLoaded(
-          products: filteredProducts,
-          hasReachedMax: hasReachedMax,
-          isCachedData:
-              state is ProductLoaded && (state as ProductLoaded).isCachedData,
-        ),
-      );
+    final currentState = state;
+    if (currentState is ProductLoaded) {
+      final newProducts =
+          event.query.isEmpty
+              ? allProducts
+              : allProducts
+                  .where(
+                    (product) => product.title.toLowerCase().contains(
+                      event.query.toLowerCase(),
+                    ),
+                  )
+                  .toList();
+      // Only emit if products have changed
+      if (newProducts != currentState.products) {
+        developer.log(
+          'Emitting ProductLoaded for search: ${newProducts.length} products',
+          name: 'ProductBloc',
+        );
+        emit(
+          ProductLoaded(
+            products: newProducts,
+            hasReachedMax: hasReachedMax,
+            isCachedData: currentState.isCachedData,
+          ),
+        );
+      } else {
+        developer.log(
+          'Skipping ProductLoaded emission: products unchanged',
+          name: 'ProductBloc',
+        );
+      }
     }
   }
 
@@ -131,20 +136,36 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     final currentState = state;
     if (currentState is ProductLoaded) {
       final sortedProducts = List<Product>.from(currentState.products);
+      bool hasChanged = false;
       if (event.sortBy == 'price_low_high') {
         sortedProducts.sort((a, b) => a.price.compareTo(b.price));
+        hasChanged = true;
       } else if (event.sortBy == 'price_high_low') {
         sortedProducts.sort((a, b) => b.price.compareTo(a.price));
+        hasChanged = true;
       } else if (event.sortBy == 'rating') {
         sortedProducts.sort((a, b) => b.rating.compareTo(a.rating));
+        hasChanged = true;
       }
-      emit(
-        ProductLoaded(
-          products: sortedProducts,
-          hasReachedMax: hasReachedMax,
-          isCachedData: currentState.isCachedData,
-        ),
-      );
+      // Only emit if sorting was applied
+      if (hasChanged && sortedProducts != currentState.products) {
+        developer.log(
+          'Emitting ProductLoaded for sort: ${sortedProducts.length} products',
+          name: 'ProductBloc',
+        );
+        emit(
+          ProductLoaded(
+            products: sortedProducts,
+            hasReachedMax: hasReachedMax,
+            isCachedData: currentState.isCachedData,
+          ),
+        );
+      } else {
+        developer.log(
+          'Skipping ProductLoaded emission: sort unchanged',
+          name: 'ProductBloc',
+        );
+      }
     }
   }
 }

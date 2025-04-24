@@ -1,3 +1,7 @@
+// features/product/presentation/widgets/product_card.dart
+
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/product.dart';
@@ -9,53 +13,42 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
+    developer.log(
+      'Rebuilding ProductCard for product: ${product.title}',
+      name: 'ProductCard',
+    );
+    return Card(
+      elevation: 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: Image.network(product.image, fit: BoxFit.contain),
+          Expanded(
+            child: Image.network(
+              product.image,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (context, error, stackTrace) => const Icon(Icons.error),
+            ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            child: Text(
+              product.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text('\$${product.price.toStringAsFixed(2)}'),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
               children: [
-                Text(
-                  product.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-
-                Text(
-                  '\$${product.price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      product.rating.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
+                const Icon(Icons.star, color: Colors.amber, size: 16),
+                Text('${product.rating}'),
               ],
             ),
           ),

@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/debouncer.dart';
 import '../blocs/product_bloc.dart';
 import '../blocs/product_event.dart';
 import '../blocs/product_state.dart';
@@ -20,10 +21,12 @@ class _HomePageState extends State<HomePage> {
   int _currentPage = 1;
   bool _isFetching = false;
   final TextEditingController _searchController = TextEditingController();
+  late final Debouncer _debouncer;
 
   @override
   void initState() {
     super.initState();
+    _debouncer = Debouncer(duration: const Duration(milliseconds: 300));
     context.read<ProductBloc>().add(FetchProducts(_currentPage));
     _scrollController.addListener(_onScroll);
   }
@@ -49,6 +52,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _debouncer.dispose();
     super.dispose();
   }
 
@@ -105,6 +109,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    developer.log('Rebuilding HomePage', name: 'HomePage');
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -122,7 +127,15 @@ class _HomePageState extends State<HomePage> {
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (value) {
-                        context.read<ProductBloc>().add(SearchProducts(value));
+                        _debouncer.run(() {
+                          developer.log(
+                            'Debounced search: $value',
+                            name: 'HomePage',
+                          );
+                          context.read<ProductBloc>().add(
+                            SearchProducts(value),
+                          );
+                        });
                       },
                     ),
                   ),
@@ -135,14 +148,14 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Expanded(
-              child: BlocConsumer<ProductBloc, ProductState>(
+              child: BlocListener<ProductBloc, ProductState>(
                 listener: (context, state) {
+                  developer.log(
+                    'Listener received state: ${state.runtimeType}',
+                    name: 'HomePage',
+                  );
                   if (state is ProductLoaded) {
                     _isFetching = false;
-                    developer.log(
-                      'Received ProductLoaded: ${state.products.length} products, hasReachedMax: ${state.hasReachedMax}',
-                      name: 'HomePage',
-                    );
                     if (state.isCachedData) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -153,10 +166,6 @@ class _HomePageState extends State<HomePage> {
                     }
                   } else if (state is ProductError) {
                     _isFetching = false;
-                    developer.log(
-                      'Received ProductError: ${state.message}',
-                      name: 'HomePage',
-                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(state.message),
@@ -165,44 +174,47 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
                 },
-                builder: (context, state) {
-                  developer.log(
-                    'Building UI with state: ${state.runtimeType}',
-                    name: 'HomePage',
-                  );
-                  if (state is ProductLoading && _currentPage == 1) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (state is ProductLoaded) {
-                    return GridView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(8),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.65,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                      itemCount:
-                          state.products.length + (state.hasReachedMax ? 0 : 1),
-                      itemBuilder: (context, index) {
-                        if (index >= state.products.length) {
-                          developer.log(
-                            'Showing loading indicator for index $index',
-                            name: 'HomePage',
-                          );
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        return ProductCard(product: state.products[index]);
-                      },
+                child: BlocBuilder<ProductBloc, ProductState>(
+                  builder: (context, state) {
+                    developer.log(
+                      'Building product list with state: ${state.runtimeType}',
+                      name: 'HomePage',
                     );
-                  } else if (state is ProductError) {
-                    return Center(child: Text(state.message));
-                  }
-                  return const Center(child: Text('No products found'));
-                },
+                    if (state is ProductLoading && _currentPage == 1) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (state is ProductLoaded) {
+                      return GridView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(8),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.65,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                        itemCount:
+                            state.products.length +
+                            (state.hasReachedMax ? 0 : 1),
+                        itemBuilder: (context, index) {
+                          if (index >= state.products.length) {
+                            developer.log(
+                              'Showing loading indicator for index $index',
+                              name: 'HomePage',
+                            );
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          return ProductCard(product: state.products[index]);
+                        },
+                      );
+                    } else if (state is ProductError) {
+                      return Center(child: Text(state.message));
+                    }
+                    return const Center(child: Text('No products found'));
+                  },
+                ),
               ),
             ),
           ],
