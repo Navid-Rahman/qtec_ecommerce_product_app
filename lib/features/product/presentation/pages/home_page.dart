@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -16,6 +18,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
   int _currentPage = 1;
+  bool _isFetching = false;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -27,9 +30,18 @@ class _HomePageState extends State<HomePage> {
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _currentPage++;
-      context.read<ProductBloc>().add(FetchProducts(_currentPage));
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isFetching) {
+      final state = context.read<ProductBloc>().state;
+      if (state is ProductLoaded && !state.hasReachedMax) {
+        _isFetching = true;
+        _currentPage++;
+        developer.log(
+          'Triggering fetch for page $_currentPage',
+          name: 'HomePage',
+        );
+        context.read<ProductBloc>().add(FetchProducts(_currentPage));
+      }
     }
   }
 
@@ -125,14 +137,26 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: BlocConsumer<ProductBloc, ProductState>(
                 listener: (context, state) {
-                  if (state is ProductLoaded && state.isCachedData) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Offline: Showing cached data'),
-                        duration: Duration(seconds: 3),
-                      ),
+                  if (state is ProductLoaded) {
+                    _isFetching = false;
+                    developer.log(
+                      'Received ProductLoaded: ${state.products.length} products, hasReachedMax: ${state.hasReachedMax}',
+                      name: 'HomePage',
                     );
+                    if (state.isCachedData) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Offline: Showing cached data'),
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
                   } else if (state is ProductError) {
+                    _isFetching = false;
+                    developer.log(
+                      'Received ProductError: ${state.message}',
+                      name: 'HomePage',
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(state.message),
@@ -142,6 +166,10 @@ class _HomePageState extends State<HomePage> {
                   }
                 },
                 builder: (context, state) {
+                  developer.log(
+                    'Building UI with state: ${state.runtimeType}',
+                    name: 'HomePage',
+                  );
                   if (state is ProductLoading && _currentPage == 1) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (state is ProductLoaded) {
@@ -156,11 +184,13 @@ class _HomePageState extends State<HomePage> {
                             mainAxisSpacing: 8,
                           ),
                       itemCount:
-                          state.hasReachedMax
-                              ? state.products.length
-                              : state.products.length + 1,
+                          state.products.length + (state.hasReachedMax ? 0 : 1),
                       itemBuilder: (context, index) {
                         if (index >= state.products.length) {
+                          developer.log(
+                            'Showing loading indicator for index $index',
+                            name: 'HomePage',
+                          );
                           return const Center(
                             child: CircularProgressIndicator(),
                           );

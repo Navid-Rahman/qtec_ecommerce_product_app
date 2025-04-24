@@ -4,5 +4,5 @@ import '../../../../core/error/failures.dart';
 import '../entities/product.dart';
 
 abstract class ProductRepository {
-  Future<Either<Failure, (List<Product>, bool)>> getProducts(int page);
+  Future<Either<Failure, (List<Product>, bool, int?)>> getProducts(int page);
 }

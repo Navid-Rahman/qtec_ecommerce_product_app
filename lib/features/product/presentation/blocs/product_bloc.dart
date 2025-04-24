@@ -10,6 +10,8 @@ import 'product_state.dart';
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final GetProducts getProducts;
   List<Product> allProducts = [];
+  bool hasReachedMax = false;
+  int? totalProductCount;
 
   ProductBloc({required this.getProducts}) : super(ProductInitial()) {
     on<FetchProducts>(_onFetchProducts);
@@ -22,38 +24,88 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     Emitter<ProductState> emit,
   ) async {
     if (state is ProductInitial || event.page == 1) {
+      developer.log('Fetching page ${event.page}', name: 'ProductBloc');
       emit(ProductLoading());
       final result = await getProducts(event.page);
-      result.fold((failure) => emit(ProductError(failure.message)), (data) {
-        final (products, isCached) = data;
-        allProducts = products;
-        emit(
-          ProductLoaded(
-            products: products,
-            hasReachedMax: products.isEmpty,
-            isCachedData: isCached,
-          ),
-        );
-      });
-    } else {
+      result.fold(
+        (failure) {
+          developer.log(
+            'Error fetching page ${event.page}: ${failure.message}',
+            name: 'ProductBloc',
+          );
+          emit(ProductError(failure.message));
+        },
+        (data) {
+          final (products, isCached, total) = data;
+          allProducts = products;
+          totalProductCount = total;
+          hasReachedMax =
+              products.isEmpty ||
+              (total != null && allProducts.length >= total);
+          developer.log(
+            'Emitting ProductLoaded for page ${event.page}: ${products.length} products, hasReachedMax: $hasReachedMax, total: ${allProducts.length}, totalCount: $totalProductCount',
+            name: 'ProductBloc',
+          );
+          emit(
+            ProductLoaded(
+              products: products,
+              hasReachedMax: hasReachedMax,
+              isCachedData: isCached,
+            ),
+          );
+        },
+      );
+    } else if (!hasReachedMax) {
+      developer.log('Fetching page ${event.page}', name: 'ProductBloc');
       final result = await getProducts(event.page);
-      result.fold((failure) => emit(ProductError(failure.message)), (data) {
-        final (products, isCached) = data;
-        allProducts.addAll(products);
-        emit(
-          ProductLoaded(
-            products: allProducts,
-            hasReachedMax: products.isEmpty,
-            isCachedData: isCached,
-          ),
-        );
-      });
+      result.fold(
+        (failure) {
+          developer.log(
+            'Error fetching page ${event.page}: ${failure.message}',
+            name: 'ProductBloc',
+          );
+          emit(ProductError(failure.message));
+        },
+        (data) {
+          final (products, isCached, total) = data;
+          allProducts.addAll(products);
+          totalProductCount = total ?? totalProductCount;
+          hasReachedMax =
+              products.isEmpty ||
+              (totalProductCount != null &&
+                  allProducts.length >= totalProductCount!);
+          developer.log(
+            'Emitting ProductLoaded for page ${event.page}: ${products.length} new products, hasReachedMax: $hasReachedMax, total: ${allProducts.length}, totalCount: $totalProductCount',
+            name: 'ProductBloc',
+          );
+          emit(
+            ProductLoaded(
+              products: allProducts,
+              hasReachedMax: hasReachedMax,
+              isCachedData: isCached,
+            ),
+          );
+        },
+      );
+    } else {
+      developer.log(
+        'Skipping fetch for page ${event.page}: hasReachedMax is true',
+        name: 'ProductBloc',
+      );
     }
   }
 
   void _onSearchProducts(SearchProducts event, Emitter<ProductState> emit) {
+    developer.log('Searching with query: ${event.query}', name: 'ProductBloc');
     if (event.query.isEmpty) {
-      emit(ProductLoaded(products: allProducts));
+      emit(
+        ProductLoaded(
+          products: allProducts,
+          hasReachedMax: hasReachedMax,
+          isCachedData:
+              state is ProductLoaded && (state as ProductLoaded).isCachedData,
+        ),
+      );
     } else {
       final filteredProducts =
           allProducts
@@ -63,15 +115,19 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
                 ),
               )
               .toList();
-      emit(ProductLoaded(products: filteredProducts));
+      emit(
+        ProductLoaded(
+          products: filteredProducts,
+          hasReachedMax: hasReachedMax,
+          isCachedData:
+              state is ProductLoaded && (state as ProductLoaded).isCachedData,
+        ),
+      );
     }
   }
 
   void _onSortProducts(SortProducts event, Emitter<ProductState> emit) {
-    developer.log(
-      'Processing SortProducts event with sortBy: ${event.sortBy}',
-      name: 'ProductBloc',
-    );
+    developer.log('Sorting by: ${event.sortBy}', name: 'ProductBloc');
     final currentState = state;
     if (currentState is ProductLoaded) {
       final sortedProducts = List<Product>.from(currentState.products);
@@ -82,8 +138,13 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       } else if (event.sortBy == 'rating') {
         sortedProducts.sort((a, b) => b.rating.compareTo(a.rating));
       }
-      developer.log('Sorted products by ${event.sortBy}', name: 'ProductBloc');
-      emit(ProductLoaded(products: sortedProducts));
+      emit(
+        ProductLoaded(
+          products: sortedProducts,
+          hasReachedMax: hasReachedMax,
+          isCachedData: currentState.isCachedData,
+        ),
+      );
     }
   }
 }

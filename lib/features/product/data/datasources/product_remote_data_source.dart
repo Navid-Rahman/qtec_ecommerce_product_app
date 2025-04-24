@@ -9,7 +9,7 @@ import '../../../../core/error/exceptions.dart';
 import '../models/product_model.dart';
 
 abstract class ProductRemoteDataSource {
-  Future<(List<ProductModel>, bool)> getProducts(int page);
+  Future<(List<ProductModel>, bool, int?)> getProducts(int page);
 }
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
@@ -24,7 +24,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   });
 
   @override
-  Future<(List<ProductModel>, bool)> getProducts(int page) async {
+  Future<(List<ProductModel>, bool, int?)> getProducts(int page) async {
     const int pageSize = 10;
     final connectivityResult = await connectivity.checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
@@ -41,7 +41,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           startIndex,
           endIndex > cachedProducts.length ? cachedProducts.length : endIndex,
         );
-        return (paginatedProducts, true);
+        return (paginatedProducts, true, null);
       }
       throw ServerException('No internet connection and no cached data');
     }
@@ -72,7 +72,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           'No more products to fetch (page: $page)',
           name: 'ProductRemoteDataSource',
         );
-        return (<ProductModel>[], false);
+        return (<ProductModel>[], false, products.length);
       }
       final endIndex = startIndex + pageSize;
       final paginatedProducts = products.sublist(
@@ -80,10 +80,10 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
         endIndex > products.length ? products.length : endIndex,
       );
       developer.log(
-        'Successfully fetched ${paginatedProducts.length} products for page $page',
+        'Successfully fetched ${paginatedProducts.length} products for page $page, total: ${products.length}',
         name: 'ProductRemoteDataSource',
       );
-      return (paginatedProducts, false);
+      return (paginatedProducts, false, products.length);
     } else {
       throw ServerException('Failed to fetch products');
     }
