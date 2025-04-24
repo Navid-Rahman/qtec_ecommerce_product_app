@@ -23,7 +23,7 @@ This is a Flutter application developed as part of the Qtec Task for a job appli
 ![Sort](assets/screenshots/sort_by.png)
 
 *Offline Snackbar*
-![Offline](-)
+![Offline](assets/screenshots/offline_snackbar.png)
 
 ## Setup Instructions
 1. **Clone the Repository**:
