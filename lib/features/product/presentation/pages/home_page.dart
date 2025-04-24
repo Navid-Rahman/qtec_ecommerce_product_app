@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext bottomSheetContext) {
         return BlocProvider.value(
-          value: context.read<ProductBloc>(), // Use the existing ProductBloc
+          value: context.read<ProductBloc>(),
           child: Container(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -125,11 +125,18 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: BlocConsumer<ProductBloc, ProductState>(
                 listener: (context, state) {
-                  if (state is ProductError &&
-                      state.message.contains('No internet connection')) {
+                  if (state is ProductLoaded && state.isCachedData) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Offline: Showing cached data'),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  } else if (state is ProductError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        duration: const Duration(seconds: 3),
                       ),
                     );
                   }

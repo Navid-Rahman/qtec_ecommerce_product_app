@@ -12,10 +12,12 @@ class ProductRepositoryImpl implements ProductRepository {
   ProductRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, List<Product>>> getProducts(int page) async {
+  Future<Either<Failure, (List<Product>, bool)>> getProducts(int page) async {
     try {
-      final remoteProducts = await remoteDataSource.getProducts(page);
-      return Right(remoteProducts);
+      final (remoteProducts, isCached) = await remoteDataSource.getProducts(
+        page,
+      );
+      return Right((remoteProducts, isCached));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     }

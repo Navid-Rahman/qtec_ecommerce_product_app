@@ -9,7 +9,7 @@ import '../../../../core/error/exceptions.dart';
 import '../models/product_model.dart';
 
 abstract class ProductRemoteDataSource {
-  Future<List<ProductModel>> getProducts(int page);
+  Future<(List<ProductModel>, bool)> getProducts(int page);
 }
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
@@ -24,7 +24,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   });
 
   @override
-  Future<List<ProductModel>> getProducts(int page) async {
+  Future<(List<ProductModel>, bool)> getProducts(int page) async {
     const int pageSize = 10;
     final connectivityResult = await connectivity.checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
@@ -37,10 +37,11 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
 
         final startIndex = (page - 1) * pageSize;
         final endIndex = startIndex + pageSize;
-        return cachedProducts.sublist(
+        final paginatedProducts = cachedProducts.sublist(
           startIndex,
           endIndex > cachedProducts.length ? cachedProducts.length : endIndex,
         );
+        return (paginatedProducts, true);
       }
       throw ServerException('No internet connection and no cached data');
     }
@@ -56,8 +57,11 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = json.decode(response.body);
-      final products =
-          jsonList.map((json) => ProductModel.fromJson(json)).toList();
+      final List<ProductModel> products =
+          jsonList
+              .map((json) => ProductModel.fromJson(json))
+              .toList()
+              .cast<ProductModel>();
       for (var product in products) {
         await productBox.put(product.id, product);
       }
@@ -68,7 +72,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           'No more products to fetch (page: $page)',
           name: 'ProductRemoteDataSource',
         );
-        return [];
+        return (<ProductModel>[], false);
       }
       final endIndex = startIndex + pageSize;
       final paginatedProducts = products.sublist(
@@ -79,7 +83,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
         'Successfully fetched ${paginatedProducts.length} products for page $page',
         name: 'ProductRemoteDataSource',
       );
-      return paginatedProducts;
+      return (paginatedProducts, false);
     } else {
       throw ServerException('Failed to fetch products');
     }

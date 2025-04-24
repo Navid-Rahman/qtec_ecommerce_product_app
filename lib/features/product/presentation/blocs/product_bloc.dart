@@ -24,18 +24,28 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     if (state is ProductInitial || event.page == 1) {
       emit(ProductLoading());
       final result = await getProducts(event.page);
-      result.fold((failure) => emit(ProductError(failure.message)), (products) {
+      result.fold((failure) => emit(ProductError(failure.message)), (data) {
+        final (products, isCached) = data;
         allProducts = products;
         emit(
-          ProductLoaded(products: products, hasReachedMax: products.isEmpty),
+          ProductLoaded(
+            products: products,
+            hasReachedMax: products.isEmpty,
+            isCachedData: isCached,
+          ),
         );
       });
     } else {
       final result = await getProducts(event.page);
-      result.fold((failure) => emit(ProductError(failure.message)), (products) {
+      result.fold((failure) => emit(ProductError(failure.message)), (data) {
+        final (products, isCached) = data;
         allProducts.addAll(products);
         emit(
-          ProductLoaded(products: allProducts, hasReachedMax: products.isEmpty),
+          ProductLoaded(
+            products: allProducts,
+            hasReachedMax: products.isEmpty,
+            isCachedData: isCached,
+          ),
         );
       });
     }
