@@ -12,6 +12,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   List<Product> allProducts = [];
   bool hasReachedMax = false;
   int? totalProductCount;
+  String _currentSearchQuery = '';
 
   ProductBloc({required this.getProducts}) : super(ProductInitial()) {
     on<FetchProducts>(_onFetchProducts);
@@ -51,6 +52,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
               products: products,
               hasReachedMax: hasReachedMax,
               isCachedData: isCached,
+              searchQuery: _currentSearchQuery,
             ),
           );
         },
@@ -83,6 +85,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
               products: allProducts,
               hasReachedMax: hasReachedMax,
               isCachedData: isCached,
+              searchQuery: _currentSearchQuery,
             ),
           );
         },
@@ -97,6 +100,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   void _onSearchProducts(SearchProducts event, Emitter<ProductState> emit) {
     developer.log('Searching with query: ${event.query}', name: 'ProductBloc');
+    _currentSearchQuery = event.query;
     final currentState = state;
     if (currentState is ProductLoaded) {
       final newProducts =
@@ -120,6 +124,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
             products: newProducts,
             hasReachedMax: hasReachedMax,
             isCachedData: currentState.isCachedData,
+            searchQuery: _currentSearchQuery,
           ),
         );
       } else {
@@ -158,6 +163,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
             products: sortedProducts,
             hasReachedMax: hasReachedMax,
             isCachedData: currentState.isCachedData,
+            searchQuery: _currentSearchQuery,
           ),
         );
       } else {

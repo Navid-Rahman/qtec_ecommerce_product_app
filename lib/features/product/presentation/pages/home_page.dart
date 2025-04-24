@@ -183,6 +183,13 @@ class _HomePageState extends State<HomePage> {
                     if (state is ProductLoading && _currentPage == 1) {
                       return const Center(child: CircularProgressIndicator());
                     } else if (state is ProductLoaded) {
+                      if (state.products.isEmpty) {
+                        final message =
+                            state.searchQuery.isEmpty
+                                ? 'No products found'
+                                : 'No products found for "${state.searchQuery}"';
+                        return Center(child: Text(message));
+                      }
                       return GridView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(8),
